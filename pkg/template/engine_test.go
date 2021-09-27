@@ -7,8 +7,8 @@ import (
 )
 
 const (
-	rawHolderReplace  = "Hello [[ Name ]]"
-	rawCodeHolderEval = "Hello {{ println(\"Antonio\") }}"
+	rawHolderReplace  = "Hello [[ Name ]]!"
+	rawCodeHolderEval = "Hello {{ print(\"Antonio\") }}!"
 )
 
 func TestHolderReplace(t *testing.T) {
