@@ -9,17 +9,17 @@ import (
 	"text/scanner"
 )
 
-type Asset struct {
+type Template struct {
 	lexer         *Lexer
 	RawReplace    map[string]string
 	PlasmaReplace map[string]string
 	vm            *gplasma.VirtualMachine
 }
 
-func (asset *Asset) Compile() ([]byte, error) {
+func (template *Template) Compile() ([]byte, error) {
 	bufferHandler := bytes.NewBuffer([]byte{})
-	for asset.lexer.HasNext() {
-		token, lexingError := asset.lexer.Next()
+	for template.lexer.HasNext() {
+		token, lexingError := template.lexer.Next()
 		if lexingError != nil {
 			return nil, errors.New("During compilation -> " + lexingError.Error())
 		}
@@ -28,23 +28,23 @@ func (asset *Asset) Compile() ([]byte, error) {
 		case Raw:
 			_, writeError = bufferHandler.WriteString(token.String)
 		case Holder:
-			replace, found := asset.RawReplace[token.String]
+			replace, found := template.RawReplace[token.String]
 			if !found {
 				return nil, errors.New(fmt.Sprintf(HolderNotFound, token.String))
 			}
 			_, writeError = bufferHandler.WriteString(replace)
 		case CodeHolder:
 			// Compile plasma and execute it
-			code, found := asset.PlasmaReplace[token.String]
+			code, found := template.PlasmaReplace[token.String]
 			if !found {
 				code = token.String
 			}
 			output := bytes.NewBuffer([]byte{})
-			asset.vm.Stdout = output
-			asset.vm.Stderr = asset.vm.Stdout
-			executionError, success := asset.vm.ExecuteMain(code)
+			template.vm.Stdout = output
+			template.vm.Stderr = template.vm.Stdout
+			executionError, success := template.vm.ExecuteMain(code)
 			if !success {
-				return nil, errors.New(executionError.GetClass(asset.vm.Plasma).Name + ": " + executionError.String)
+				return nil, errors.New(executionError.GetClass(template.vm.Plasma).Name + ": " + executionError.String)
 			}
 			_, writeError = bufferHandler.Write(output.Bytes())
 		case EOF:
@@ -57,22 +57,22 @@ func (asset *Asset) Compile() ([]byte, error) {
 	return bufferHandler.Bytes(), nil
 }
 
-func NewAsset(reader io.Reader, rawReplace map[string]string, plasmaReplace map[string]string) *Asset {
-	assetScanner := new(scanner.Scanner)
-	assetScanner.Init(reader)
-	return &Asset{
-		lexer:         NewLexer(assetScanner),
+func NewTemplate(reader io.Reader, rawReplace map[string]string, plasmaReplace map[string]string) *Template {
+	templateScanner := new(scanner.Scanner)
+	templateScanner.Init(reader)
+	return &Template{
+		lexer:         NewLexer(templateScanner),
 		RawReplace:    rawReplace,
 		PlasmaReplace: plasmaReplace,
 		vm:            gplasma.NewVirtualMachine(),
 	}
 }
 
-func NewAssetCustomVM(reader io.Reader, rawReplace map[string]string, plasmaReplace map[string]string, vm *gplasma.VirtualMachine) *Asset {
-	assetScanner := new(scanner.Scanner)
-	assetScanner.Init(reader)
-	return &Asset{
-		lexer:         NewLexer(assetScanner),
+func NewTemplateCustomVM(reader io.Reader, rawReplace map[string]string, plasmaReplace map[string]string, vm *gplasma.VirtualMachine) *Template {
+	templateScanner := new(scanner.Scanner)
+	templateScanner.Init(reader)
+	return &Template{
+		lexer:         NewLexer(templateScanner),
 		RawReplace:    rawReplace,
 		PlasmaReplace: plasmaReplace,
 		vm:            vm,

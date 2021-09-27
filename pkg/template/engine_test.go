@@ -16,8 +16,8 @@ func TestHolderReplace(t *testing.T) {
 		"Name": "Antonio",
 	}
 	codeReplace := map[string]string{}
-	asset := NewAsset(strings.NewReader(rawHolderReplace), rawReplace, codeReplace)
-	content, compileError := asset.Compile()
+	template := NewTemplate(strings.NewReader(rawHolderReplace), rawReplace, codeReplace)
+	content, compileError := template.Compile()
 	if compileError != nil {
 		panic(compileError)
 	}
@@ -27,8 +27,8 @@ func TestHolderReplace(t *testing.T) {
 func TestCodeHolderReplace(t *testing.T) {
 	rawReplace := map[string]string{}
 	codeReplace := map[string]string{}
-	asset := NewAsset(strings.NewReader(rawCodeHolderEval), rawReplace, codeReplace)
-	content, compileError := asset.Compile()
+	template := NewTemplate(strings.NewReader(rawCodeHolderEval), rawReplace, codeReplace)
+	content, compileError := template.Compile()
 	if compileError != nil {
 		panic(compileError)
 	}
