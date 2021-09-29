@@ -22,7 +22,7 @@ func TestCompileString(t *testing.T) {
 }
 
 func TestCompilePackage(t *testing.T) {
-	result, compilationError := Compile([]string{"../../../samples/sample-1"})
+	result, compilationError := Compile([]string{"../../../test/samples/sample-1"})
 	if compilationError != nil {
 		t.Fatal(compilationError)
 	}
