@@ -14,7 +14,7 @@ func main() {
 )
 
 func TestCompilePackage(t *testing.T) {
-	result, compilationError := Compile([]string{"./samples/sample-1"}, "", "", PrepareDefaultOptions())
+	result, compilationError := Compile([]string{"../../../samples/sample-1"}, "", "", PrepareDefaultOptions())
 	if compilationError != nil {
 		t.Fatal(compilationError)
 	}
