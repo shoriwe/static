@@ -21,7 +21,7 @@ func (lexer *Lexer) next() rune {
 	return lexer.currentRune
 }
 
-func (lexer *Lexer) tokenizeCodeHolder(startPosition scanner.Position) (*Token, error) {
+func (lexer *Lexer) tokenizeHolder(startPosition scanner.Position, resultId uint, openRune, closeRune rune) (*Token, error) {
 	if !lexer.HasNext() {
 		return &Token{
 			DirectValue: Raw,
@@ -30,17 +30,17 @@ func (lexer *Lexer) tokenizeCodeHolder(startPosition scanner.Position) (*Token, 
 			Length:      1,
 		}, nil
 	}
-	if lexer.next() != OpenBrace {
-		return lexer.tokenizeRaw([]rune{OpenBrace, lexer.currentRune}, startPosition)
+	if lexer.next() != openRune {
+		return lexer.tokenizeRaw([]rune{openRune, lexer.currentRune}, startPosition)
 	}
 	if !lexer.HasNext() {
 		return nil, errors.New(fmt.Sprintf(HolderNeverClosed, startPosition.Line, startPosition.Offset))
 	}
-	if lexer.next() == OpenBrace {
+	if lexer.next() == openRune {
 		// Escaped {{{ -> {{ in plain text
 		return &Token{
 			DirectValue: Raw,
-			String:      "{{",
+			String:      string([]rune{openRune, openRune}),
 			Position:    startPosition,
 			Length:      2,
 		}, nil
@@ -55,84 +55,24 @@ func (lexer *Lexer) tokenizeCodeHolder(startPosition scanner.Position) (*Token, 
 			return nil, errors.New(fmt.Sprintf(HolderNeverClosed, startPosition.Line, startPosition.Offset))
 		}
 		switch lexer.next() {
-		case WhiteSpace:
+		case WhiteSpace, NewLine:
+			characterFound := lexer.currentRune
 			if !lexer.HasNext() {
 				return nil, errors.New(fmt.Sprintf(InvalidHolderDefinition, startPosition.Line, startPosition.Offset))
 			}
-			if lexer.next() != CloseBrace {
-				body = append(body, WhiteSpace, lexer.currentRune)
+			if lexer.next() != closeRune {
+				body = append(body, characterFound, lexer.currentRune)
 				break
 			}
 			if !lexer.HasNext() {
 				return nil, errors.New(fmt.Sprintf(InvalidHolderDefinition, startPosition.Line, startPosition.Offset))
 			}
-			if lexer.next() != CloseBrace {
-				body = append(body, WhiteSpace, CloseBrace, lexer.currentRune)
-				break
-			}
-			return &Token{
-				DirectValue: CodeHolder,
-				String:      string(body),
-				Position:    startPosition,
-				Length:      len(body),
-			}, nil
-		default:
-			body = append(body, lexer.currentRune)
-		}
-	}
-}
-
-func (lexer *Lexer) tokenizeHolder(startPosition scanner.Position) (*Token, error) {
-	if !lexer.HasNext() {
-		return &Token{
-			DirectValue: Raw,
-			String:      string([]rune{lexer.currentRune}),
-			Position:    lexer.scanner.Pos(),
-			Length:      1,
-		}, nil
-	}
-	if lexer.next() != OpenSquare {
-		return lexer.tokenizeRaw([]rune{OpenSquare, lexer.currentRune}, startPosition)
-	}
-	if !lexer.HasNext() {
-		return nil, errors.New(fmt.Sprintf(HolderNeverClosed, startPosition.Line, startPosition.Offset))
-	}
-	if lexer.next() == OpenSquare {
-		// Escaped [[[ -> [[ in plain text
-		return &Token{
-			DirectValue: Raw,
-			String:      "[[",
-			Position:    startPosition,
-			Length:      2,
-		}, nil
-	} else if lexer.currentRune != WhiteSpace && lexer.currentRune != NewLine {
-		return nil, errors.New(fmt.Sprintf(InvalidHolderDefinition, startPosition.Line, startPosition.Offset))
-	}
-	startPosition = lexer.scanner.Pos()
-	var body []rune
-	// Parse the body of the holder
-	for {
-		if !lexer.HasNext() {
-			return nil, errors.New(fmt.Sprintf(HolderNeverClosed, startPosition.Line, startPosition.Offset))
-		}
-		switch lexer.next() {
-		case WhiteSpace:
-			if !lexer.HasNext() {
-				return nil, errors.New(fmt.Sprintf(InvalidHolderDefinition, startPosition.Line, startPosition.Offset))
-			}
-			if lexer.next() != CloseSquare {
-				body = append(body, WhiteSpace, lexer.currentRune)
-				break
-			}
-			if !lexer.HasNext() {
-				return nil, errors.New(fmt.Sprintf(InvalidHolderDefinition, startPosition.Line, startPosition.Offset))
-			}
-			if lexer.next() != CloseSquare {
-				body = append(body, WhiteSpace, CloseSquare, lexer.currentRune)
+			if lexer.next() != closeRune {
+				body = append(body, characterFound, closeRune, lexer.currentRune)
 				break
 			}
 			return &Token{
-				DirectValue: Holder,
+				DirectValue: resultId,
 				String:      string(body),
 				Position:    startPosition,
 				Length:      len(body),
@@ -148,7 +88,7 @@ func (lexer *Lexer) tokenizeRaw(previous []rune, startPosition scanner.Position)
 rawLoop:
 	for lexer.HasNext() {
 		switch lexer.scanner.Peek() {
-		case scanner.EOF, OpenSquare, OpenBrace, CloseSquare, CloseBrace:
+		case scanner.EOF, OpenSquare, OpenBrace, OpenParentheses, CloseSquare, CloseBrace, CloseParentheses:
 			break rawLoop
 		}
 		body = append(body, lexer.next())
@@ -180,10 +120,12 @@ func (lexer *Lexer) Next() (*Token, error) {
 			Length:      1,
 		}, nil
 	case OpenBrace:
-		return lexer.tokenizeCodeHolder(position)
+		return lexer.tokenizeHolder(position, GoCodeHolder, OpenBrace, CloseBrace)
 	case OpenSquare:
-		return lexer.tokenizeHolder(position)
-	case CloseBrace, CloseSquare:
+		return lexer.tokenizeHolder(position, PlasmaCodeHolder, OpenSquare, CloseSquare)
+	case OpenParentheses:
+		return lexer.tokenizeHolder(position, Holder, OpenParentheses, CloseParentheses)
+	case CloseBrace, CloseSquare, CloseParentheses:
 		closing := lexer.currentRune
 		if !lexer.HasNext() {
 			return &Token{

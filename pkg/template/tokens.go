@@ -6,16 +6,19 @@ const (
 	EOF = iota
 	Raw
 	Holder
-	CodeHolder
+	PlasmaCodeHolder
+	GoCodeHolder
 )
 
 const (
-	OpenBrace   rune = '{'
-	CloseBrace  rune = '}'
-	OpenSquare  rune = '['
-	CloseSquare rune = ']'
-	WhiteSpace  rune = ' '
-	NewLine     rune = '\n'
+	OpenParentheses  rune = '('
+	CloseParentheses rune = ')'
+	OpenBrace        rune = '{'
+	CloseBrace       rune = '}'
+	OpenSquare       rune = '['
+	CloseSquare      rune = ']'
+	WhiteSpace       rune = ' '
+	NewLine          rune = '\n'
 )
 
 type Token struct {
