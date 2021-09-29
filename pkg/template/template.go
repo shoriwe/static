@@ -5,6 +5,7 @@ import (
 	"errors"
 	"fmt"
 	"github.com/shoriwe/gplasma"
+	"github.com/shoriwe/static/pkg/js/compiler"
 	"io"
 	"text/scanner"
 )
@@ -33,7 +34,13 @@ func (template *Template) Compile() ([]byte, error) {
 				return nil, errors.New(fmt.Sprintf(HolderNotFound, token.String))
 			}
 			_, writeError = bufferHandler.WriteString(replace)
-		case CodeHolder:
+		case GoCodeHolder:
+			compiledCode, compilationError := compiler.CompileString(token.String, "", "", compiler.PrepareDefaultOptions())
+			if compilationError != nil {
+				return nil, compilationError
+			}
+			_, writeError = bufferHandler.Write(compiledCode)
+		case PlasmaCodeHolder:
 			// Compile plasma and execute it
 			code, found := template.PlasmaReplace[token.String]
 			if !found {
