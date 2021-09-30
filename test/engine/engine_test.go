@@ -31,7 +31,15 @@ func TestEngine(t *testing.T) {
 	)
 	myEngine.HandlePath("/index.html",
 		func(engine *engine.Engine) ([]byte, error) {
-			return engine.RenderTemplate("index.html", nil)
+			scriptUrl, getError := engine.ScriptURL("hello-world")
+			if getError != nil {
+				return nil, getError
+			}
+			return engine.RenderTemplate("index.html",
+				map[string]string{
+					"url": scriptUrl,
+				},
+			)
 		},
 	)
 	generationError := myEngine.Generate("output/sample-1")

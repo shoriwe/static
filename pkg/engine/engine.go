@@ -44,7 +44,7 @@ func LoadScripts(location, output string) (Scripts, error) {
 			packagePath = "./" + packagePath
 		}
 		files[file.Name()] = Script{
-			WebPagePath: "/" + path.Join(output, file.Name() + ".js"),
+			WebPagePath: "/" + path.Join(output, file.Name()+".js"),
 			PackagePath: packagePath,
 		}
 	}

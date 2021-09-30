@@ -73,6 +73,7 @@ func (lexer *Lexer) tokenizeHolder(startPosition scanner.Position, resultId uint
 				body = append(body, characterFound, closeRune, lexer.currentRune)
 				break
 			}
+			lexer.next()
 			return &Token{
 				DirectValue: resultId,
 				String:      string(body),
