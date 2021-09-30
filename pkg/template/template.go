@@ -7,14 +7,14 @@ import (
 	"github.com/shoriwe/gplasma"
 	"github.com/shoriwe/static/pkg/js/compiler"
 	"io"
+	"strings"
 	"text/scanner"
 )
 
 type Template struct {
-	lexer         *Lexer
-	RawReplace    map[string]string
-	PlasmaReplace map[string]string
-	vm            *gplasma.VirtualMachine
+	lexer      *Lexer
+	RawReplace map[string]string
+	vm         *gplasma.VirtualMachine
 }
 
 func (template *Template) Compile() ([]byte, error) {
@@ -35,21 +35,22 @@ func (template *Template) Compile() ([]byte, error) {
 			}
 			_, writeError = bufferHandler.WriteString(replace)
 		case GoCodeHolder:
-			compiledCode, compilationError := compiler.CompileString(token.String, "", "", compiler.PrepareDefaultOptions())
+			file, compilationError := compiler.CompileReader(strings.NewReader(token.String), "", compiler.PrepareDefaultOptions())
 			if compilationError != nil {
 				return nil, compilationError
 			}
+			compiledCode, readError := io.ReadAll(file)
+			if readError != nil {
+				return nil, readError
+			}
 			_, writeError = bufferHandler.Write(compiledCode)
+			_ = file.Close()
 		case PlasmaCodeHolder:
 			// Compile plasma and execute it
-			code, found := template.PlasmaReplace[token.String]
-			if !found {
-				code = token.String
-			}
 			output := bytes.NewBuffer([]byte{})
 			template.vm.Stdout = output
 			template.vm.Stderr = template.vm.Stdout
-			executionError, success := template.vm.ExecuteMain(code)
+			executionError, success := template.vm.ExecuteMain(token.String)
 			if !success {
 				return nil, errors.New(executionError.GetClass(template.vm.Plasma).Name + ": " + executionError.String)
 			}
@@ -64,14 +65,13 @@ func (template *Template) Compile() ([]byte, error) {
 	return bufferHandler.Bytes(), nil
 }
 
-func NewTemplate(reader io.Reader, rawReplace map[string]string, plasmaReplace map[string]string) *Template {
+func NewTemplate(reader io.Reader, rawReplace map[string]string) *Template {
 	templateScanner := new(scanner.Scanner)
 	templateScanner.Init(reader)
 	return &Template{
-		lexer:         NewLexer(templateScanner),
-		RawReplace:    rawReplace,
-		PlasmaReplace: plasmaReplace,
-		vm:            gplasma.NewVirtualMachine(),
+		lexer:      NewLexer(templateScanner),
+		RawReplace: rawReplace,
+		vm:         gplasma.NewVirtualMachine(),
 	}
 }
 
@@ -79,9 +79,8 @@ func NewTemplateCustomVM(reader io.Reader, rawReplace map[string]string, plasmaR
 	templateScanner := new(scanner.Scanner)
 	templateScanner.Init(reader)
 	return &Template{
-		lexer:         NewLexer(templateScanner),
-		RawReplace:    rawReplace,
-		PlasmaReplace: plasmaReplace,
-		vm:            vm,
+		lexer:      NewLexer(templateScanner),
+		RawReplace: rawReplace,
+		vm:         vm,
 	}
 }

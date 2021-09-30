@@ -34,6 +34,8 @@ func (lexer *Lexer) tokenizeHolder(startPosition scanner.Position, resultId uint
 		return lexer.tokenizeRaw([]rune{openRune, lexer.currentRune}, startPosition)
 	}
 	if !lexer.HasNext() {
+
+		fmt.Println("HERE 1")
 		return nil, errors.New(fmt.Sprintf(HolderNeverClosed, startPosition.Line, startPosition.Offset))
 	}
 	if lexer.next() == openRune {
@@ -52,6 +54,7 @@ func (lexer *Lexer) tokenizeHolder(startPosition scanner.Position, resultId uint
 	// Parse the body of the holder
 	for {
 		if !lexer.HasNext() {
+			fmt.Println("HERE 2")
 			return nil, errors.New(fmt.Sprintf(HolderNeverClosed, startPosition.Line, startPosition.Offset))
 		}
 		switch lexer.next() {
@@ -60,8 +63,7 @@ func (lexer *Lexer) tokenizeHolder(startPosition scanner.Position, resultId uint
 			if !lexer.HasNext() {
 				return nil, errors.New(fmt.Sprintf(InvalidHolderDefinition, startPosition.Line, startPosition.Offset))
 			}
-			if lexer.next() != closeRune {
-				body = append(body, characterFound, lexer.currentRune)
+			if lexer.scanner.Peek() != closeRune {
 				break
 			}
 			if !lexer.HasNext() {

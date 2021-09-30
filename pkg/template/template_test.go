@@ -26,8 +26,7 @@ func TestHolderReplace(t *testing.T) {
 	rawReplace := map[string]string{
 		"Name": "Antonio",
 	}
-	codeReplace := map[string]string{}
-	template := NewTemplate(strings.NewReader(rawHolderReplace), rawReplace, codeReplace)
+	template := NewTemplate(strings.NewReader(rawHolderReplace), rawReplace)
 	content, compileError := template.Compile()
 	if compileError != nil {
 		panic(compileError)
@@ -37,8 +36,7 @@ func TestHolderReplace(t *testing.T) {
 
 func TestGoCodeHolderReplace(t *testing.T) {
 	rawReplace := map[string]string{}
-	codeReplace := map[string]string{}
-	template := NewTemplate(strings.NewReader(rawGoCodeHolderEval), rawReplace, codeReplace)
+	template := NewTemplate(strings.NewReader(rawGoCodeHolderEval), rawReplace)
 	content, compileError := template.Compile()
 	if compileError != nil {
 		panic(compileError)
@@ -48,8 +46,7 @@ func TestGoCodeHolderReplace(t *testing.T) {
 
 func TestPlasmaCodeHolderReplace(t *testing.T) {
 	rawReplace := map[string]string{}
-	codeReplace := map[string]string{}
-	template := NewTemplate(strings.NewReader(rawPlasmaCodeHolderEval), rawReplace, codeReplace)
+	template := NewTemplate(strings.NewReader(rawPlasmaCodeHolderEval), rawReplace)
 	content, compileError := template.Compile()
 	if compileError != nil {
 		panic(compileError)
