@@ -9,12 +9,12 @@ import (
 	"runtime"
 )
 
-func CompileString(sourceCode string) ([]byte, error) {
+func CompileReader(sourceCode io.Reader) (*os.File, error) {
 	tempFile, tempFileCreationError := os.CreateTemp("", "*.go")
 	if tempFileCreationError != nil {
 		return nil, tempFileCreationError
 	}
-	_, writeError := tempFile.WriteString(sourceCode)
+	_, writeError := io.Copy(tempFile, sourceCode)
 	if writeError != nil {
 		return nil, writeError
 	}
@@ -23,7 +23,7 @@ func CompileString(sourceCode string) ([]byte, error) {
 	return Compile([]string{tempFile.Name()})
 }
 
-func Compile(files []string) ([]byte, error) {
+func Compile(files []string) (*os.File, error) {
 	tempFile, tempFileCreationError := os.CreateTemp("", "*.wasm")
 	if tempFileCreationError != nil {
 		return nil, tempFileCreationError
@@ -39,10 +39,5 @@ func Compile(files []string) ([]byte, error) {
 	if executionError != nil {
 		return nil, errors.New(executionError.Error() + "\n" + string(output))
 	}
-	file, openError := os.Open(tempFile.Name())
-	if openError != nil {
-		return nil, openError
-	}
-	defer file.Close()
-	return io.ReadAll(file)
+	return os.Open(tempFile.Name())
 }

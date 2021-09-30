@@ -19,27 +19,27 @@ func PrepareDefaultOptions() *gbuild.Options {
 		Watch:          false,
 		CreateMapFile:  true,
 		MapToLocalDisk: false,
-		Minify:         false,
+		Minify:         true,
 		Color:          true,
-		BuildTags:      nil,
+		BuildTags:      strings.Fields("clientonly"),
 	}
 }
 
-func CompileString(fileContent string, tags, packagePath string, options *gbuild.Options) ([]byte, error) {
+func CompileReader(sourceCode io.Reader, packagePath string, options *gbuild.Options) (*os.File, error) {
 	tempCodeFile, tempCodeFileCreationError := os.CreateTemp("", "code-*.go")
 	if tempCodeFileCreationError != nil {
 		return nil, tempCodeFileCreationError
 	}
 	defer os.Remove(tempCodeFile.Name())
-	_, writeError := tempCodeFile.WriteString(fileContent)
+	_, writeError := io.Copy(tempCodeFile, sourceCode)
 	if writeError != nil {
 		return nil, writeError
 	}
 	_ = tempCodeFile.Close()
-	return Compile([]string{tempCodeFile.Name()}, tags, packagePath, options)
+	return Compile([]string{tempCodeFile.Name()}, packagePath, options)
 }
 
-func Compile(args []string, tags, currentDirectory string, options *gbuild.Options) ([]byte, error) {
+func Compile(args []string, currentDirectory string, options *gbuild.Options) (*os.File, error) {
 	tempOutputFile, tempOutputFileCreationError := os.CreateTemp("", "output-*.js")
 	if tempOutputFileCreationError != nil {
 		return nil, tempOutputFileCreationError
@@ -49,7 +49,6 @@ func Compile(args []string, tags, currentDirectory string, options *gbuild.Optio
 
 	pkgObj := tempOutputFile.Name()
 
-	options.BuildTags = strings.Fields(tags)
 	for {
 		s, err := gbuild.NewSession(options)
 		if err != nil {
@@ -120,11 +119,6 @@ func Compile(args []string, tags, currentDirectory string, options *gbuild.Optio
 			return nil, err
 		}
 
-		output, openError := os.Open(tempOutputFile.Name())
-		if openError != nil {
-			return nil, openError
-		}
-		defer output.Close()
-		return io.ReadAll(output)
+		return os.Open(tempOutputFile.Name())
 	}
 }
