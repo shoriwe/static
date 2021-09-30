@@ -39,9 +39,13 @@ func LoadScripts(location, output string) (Scripts, error) {
 		if !file.IsDir() {
 			return nil, errors.New(fmt.Sprintf(ScriptIsNotAGoPackage, file.Name()))
 		}
+		packagePath := path.Join(location, file.Name())
+		if packagePath[0] != '/' && packagePath[0] != '.' {
+			packagePath = "./" + packagePath
+		}
 		files[file.Name()] = Script{
-			WebPagePath: path.Join(output, file.Name()),
-			PackagePath: "/" + path.Join("js", file.Name()),
+			WebPagePath: "/" + path.Join(output, file.Name() + ".js"),
+			PackagePath: packagePath,
 		}
 	}
 	return files, nil
@@ -143,6 +147,7 @@ func (engine *Engine) HandlePath(newPath string, loader ContentGenerator) error 
 
 func (engine *Engine) prepareStatic() error {
 	for _, script := range engine.Scripts {
+		fmt.Println(script.WebPagePath)
 		engine.paths[script.WebPagePath] = func(engine *Engine) ([]byte, error) {
 			file, compilationError := compiler.Compile([]string{script.PackagePath}, "", compiler.PrepareDefaultOptions())
 			if compilationError != nil {
