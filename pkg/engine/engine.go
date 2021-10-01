@@ -1,16 +1,27 @@
 package engine
 
 import (
+	"bytes"
 	"errors"
 	"fmt"
 	"github.com/shoriwe/static/pkg/js/compiler"
 	"github.com/shoriwe/static/pkg/template"
+	"github.com/tdewolff/minify/v2"
+	"github.com/tdewolff/minify/v2/html"
+	"github.com/tdewolff/minify/v2/js"
+	"github.com/tdewolff/minify/v2/json"
 	"io"
 	"io/fs"
 	"os"
 	"path"
 	"path/filepath"
 	"strings"
+)
+
+const (
+	JSExtension   = "js"
+	JsonExtension = "json"
+	HTMLExtension = "html"
 )
 
 type ContentGenerator func(engine *Engine) ([]byte, error)
@@ -97,15 +108,39 @@ type Engine struct {
 	Scripts   Scripts
 	Assets    Assets
 	paths     map[string]ContentGenerator
+	m         *minify.M
 }
 
 func NewEngine(templates Templates, scripts Scripts, assets Assets) *Engine {
+	m := minify.New()
+	m.Add("application/javascript", js.DefaultMinifier)
+	m.Add("text/json", json.DefaultMinifier)
+	m.Add("text/html", html.DefaultMinifier)
 	return &Engine{
 		Templates: templates,
 		Scripts:   scripts,
 		Assets:    assets,
 		paths:     map[string]ContentGenerator{},
+		m:         m,
 	}
+}
+
+func (engine *Engine) MinifyJS(content []byte) ([]byte, error) {
+	output := bytes.NewBuffer([]byte{})
+	minifyError := engine.m.Minify("application/javascript", output, bytes.NewReader(content))
+	return output.Bytes(), minifyError
+}
+
+func (engine *Engine) MinifyJson(content []byte) ([]byte, error) {
+	output := bytes.NewBuffer([]byte{})
+	minifyError := engine.m.Minify("text/json", output, bytes.NewReader(content))
+	return output.Bytes(), minifyError
+}
+
+func (engine *Engine) MinifyHTML(content []byte) ([]byte, error) {
+	output := bytes.NewBuffer([]byte{})
+	minifyError := engine.m.Minify("text/html", output, bytes.NewReader(content))
+	return output.Bytes(), minifyError
 }
 
 func (engine *Engine) RenderTemplate(template_ string, symbolMap map[string]string) ([]byte, error) {
@@ -153,7 +188,11 @@ func (engine *Engine) prepareStatic() error {
 				return nil, compilationError
 			}
 			defer file.Close()
-			return io.ReadAll(file)
+			content, readError := io.ReadAll(file)
+			if readError != nil {
+				return nil, readError
+			}
+			return engine.MinifyJS(content)
 		}
 	}
 	for _, asset := range engine.Assets {
@@ -163,7 +202,25 @@ func (engine *Engine) prepareStatic() error {
 				return nil, openError
 			}
 			defer file.Close()
-			return io.ReadAll(file)
+			content, readError := io.ReadAll(file)
+			if readError != nil {
+				return nil, readError
+			}
+			split := strings.Split(file.Name(), ".")
+			if len(split) == 1 {
+				return content, nil
+			}
+			fileFormat := split[len(split)-1]
+			switch fileFormat {
+			case JSExtension:
+				return engine.MinifyJS(content)
+			case JsonExtension:
+				return engine.MinifyJson(content)
+			case HTMLExtension:
+				return engine.MinifyHTML(content)
+			default:
+				return content, nil
+			}
 		}
 	}
 	return nil

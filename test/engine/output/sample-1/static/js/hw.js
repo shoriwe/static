@@ -1,3 +1,1 @@
-function panic(message) {
-    console.log("panic: " + message)
-}
+function hello_world(){console.log("hello world!")}

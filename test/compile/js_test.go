@@ -17,7 +17,7 @@ func main() {
 )
 
 func TestCompilePackageToJS(t *testing.T) {
-	file, compilationError := compiler.Compile([]string{"./sample-1"}, "", "", compiler.PrepareDefaultOptions())
+	file, compilationError := compiler.Compile([]string{"./sample-1"}, ".", compiler.PrepareDefaultOptions())
 	if compilationError != nil {
 		t.Fatal(compilationError)
 	}
@@ -29,7 +29,7 @@ func TestCompilePackageToJS(t *testing.T) {
 }
 
 func TestCompileReaderToJS(t *testing.T) {
-	file, compilationError := compiler.CompileReader(strings.NewReader(sample1), "", ".", compiler.PrepareDefaultOptions())
+	file, compilationError := compiler.CompileReader(strings.NewReader(sample1), ".", compiler.PrepareDefaultOptions())
 	if compilationError != nil {
 		t.Fatal(compilationError)
 	}

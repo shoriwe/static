@@ -35,11 +35,15 @@ func TestEngine(t *testing.T) {
 			if getError != nil {
 				return nil, getError
 			}
-			return engine.RenderTemplate("index.html",
+			renderedTemplate, renderError := engine.RenderTemplate("index.html",
 				map[string]string{
 					"url": scriptUrl,
 				},
 			)
+			if renderError != nil {
+				return nil, renderError
+			}
+			return engine.MinifyHTML(renderedTemplate)
 		},
 	)
 	generationError := myEngine.Generate("output/sample-1")
