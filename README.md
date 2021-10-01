@@ -16,8 +16,8 @@ this platform.
 
 ## Quicklook
 
-For this example we will virtually store our scripts in the root of our project, in a folder called `scripts`. Something similar with
-the assets and templates.
+For this example we will virtually store our scripts in the root of our project, in a folder called `scripts`. Something
+similar with the assets and templates.
 
 `my-project/main.go`
 
@@ -84,6 +84,12 @@ func main() {
 		panic(generationError)
 	}
 }
+```
+
+Finally, to generate the page simply execute in the root of your project
+
+```shell
+go run
 ```
 
 ## Documentation
