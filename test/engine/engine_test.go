@@ -29,13 +29,13 @@ func TestEngine(t *testing.T) {
 		scripts,
 		assets,
 	)
-	myEngine.HandlePath("/index.html",
-		func(engine *engine.Engine) ([]byte, error) {
-			scriptUrl, getError := engine.ScriptURL("hello-world")
+	handlingError := myEngine.HandlePath("/index.html",
+		func(e *engine.Engine) ([]byte, error) {
+			scriptUrl, getError := e.ScriptURL("hello-world")
 			if getError != nil {
 				return nil, getError
 			}
-			renderedTemplate, renderError := engine.RenderTemplate("index.html",
+			renderedTemplate, renderError := e.RenderTemplate("index.html",
 				map[string]string{
 					"url": scriptUrl,
 				},
@@ -43,9 +43,12 @@ func TestEngine(t *testing.T) {
 			if renderError != nil {
 				return nil, renderError
 			}
-			return engine.MinifyHTML(renderedTemplate)
+			return e.MinifyHTML(renderedTemplate)
 		},
 	)
+	if handlingError != nil {
+		t.Fatal(handlingError)
+	}
 	generationError := myEngine.Generate("output/sample-1")
 	if generationError != nil {
 		t.Fatal(generationError)
