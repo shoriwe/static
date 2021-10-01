@@ -147,7 +147,6 @@ func (engine *Engine) HandlePath(newPath string, loader ContentGenerator) error 
 
 func (engine *Engine) prepareStatic() error {
 	for _, script := range engine.Scripts {
-		fmt.Println(script.WebPagePath)
 		engine.paths[script.WebPagePath] = func(engine *Engine) ([]byte, error) {
 			file, compilationError := compiler.Compile([]string{script.PackagePath}, "", compiler.PrepareDefaultOptions())
 			if compilationError != nil {
