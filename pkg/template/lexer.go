@@ -18,6 +18,9 @@ func (lexer *Lexer) HasNext() bool {
 
 func (lexer *Lexer) next() rune {
 	lexer.currentRune = lexer.scanner.Next()
+	if lexer.currentRune == Return {
+		return lexer.next()
+	}
 	return lexer.currentRune
 }
 
@@ -34,19 +37,19 @@ func (lexer *Lexer) tokenizeHolder(startPosition scanner.Position, resultId uint
 		return lexer.tokenizeRaw([]rune{openRune, lexer.currentRune}, startPosition)
 	}
 	if !lexer.HasNext() {
-
-		fmt.Println("HERE 1")
 		return nil, errors.New(fmt.Sprintf(HolderNeverClosed, startPosition.Line, startPosition.Offset))
 	}
-	if lexer.next() == openRune {
-		// Escaped {{{ -> {{ in plain text
+	switch lexer.next() {
+	case openRune:
 		return &Token{
 			DirectValue: Raw,
 			String:      string([]rune{openRune, openRune}),
 			Position:    startPosition,
 			Length:      2,
 		}, nil
-	} else if lexer.currentRune != WhiteSpace && lexer.currentRune != NewLine {
+	case WhiteSpace, NewLine, Tab:
+		break
+	default:
 		return nil, errors.New(fmt.Sprintf(InvalidHolderDefinition, startPosition.Line, startPosition.Offset))
 	}
 	startPosition = lexer.scanner.Pos()
@@ -54,26 +57,23 @@ func (lexer *Lexer) tokenizeHolder(startPosition scanner.Position, resultId uint
 	// Parse the body of the holder
 	for {
 		if !lexer.HasNext() {
-			fmt.Println("HERE 2")
 			return nil, errors.New(fmt.Sprintf(HolderNeverClosed, startPosition.Line, startPosition.Offset))
 		}
 		switch lexer.next() {
-		case WhiteSpace, NewLine:
+		case WhiteSpace, NewLine, Tab:
 			characterFound := lexer.currentRune
 			if !lexer.HasNext() {
 				return nil, errors.New(fmt.Sprintf(InvalidHolderDefinition, startPosition.Line, startPosition.Offset))
 			}
 			if lexer.scanner.Peek() != closeRune {
+				body = append(body, characterFound)
 				break
 			}
-			if !lexer.HasNext() {
-				return nil, errors.New(fmt.Sprintf(InvalidHolderDefinition, startPosition.Line, startPosition.Offset))
-			}
+			lexer.next()
 			if lexer.next() != closeRune {
 				body = append(body, characterFound, closeRune, lexer.currentRune)
 				break
 			}
-			lexer.next()
 			return &Token{
 				DirectValue: resultId,
 				String:      string(body),

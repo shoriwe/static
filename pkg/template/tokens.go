@@ -19,6 +19,8 @@ const (
 	CloseSquare      rune = ']'
 	WhiteSpace       rune = ' '
 	NewLine          rune = '\n'
+	Return           rune = '\r'
+	Tab              rune = '\t'
 )
 
 type Token struct {
