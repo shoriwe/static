@@ -180,48 +180,62 @@ func (engine *Engine) HandlePath(newPath string, loader ContentGenerator) error 
 	return nil
 }
 
-func (engine *Engine) prepareStatic() error {
-	for _, script := range engine.Scripts {
-		engine.paths[script.WebPagePath] = func(engine *Engine) ([]byte, error) {
-			file, compilationError := compiler.Compile([]string{script.PackagePath}, "", compiler.PrepareDefaultOptions())
-			if compilationError != nil {
-				return nil, compilationError
-			}
-			defer file.Close()
-			content, readError := io.ReadAll(file)
-			if readError != nil {
-				return nil, readError
-			}
-			return engine.MinifyJS(content)
+func newAssetLoader(asset Asset) ContentGenerator {
+	return func(e *Engine) ([]byte, error) {
+		file, openError := os.Open(asset.FileSystemPath)
+		if openError != nil {
+			return nil, openError
+		}
+		defer file.Close()
+		content, readError := io.ReadAll(file)
+		if readError != nil {
+			return nil, readError
+		}
+		split := strings.Split(file.Name(), ".")
+		if len(split) == 1 {
+			return content, nil
+		}
+		fileFormat := split[len(split)-1]
+		switch fileFormat {
+		case JSExtension:
+			return e.MinifyJS(content)
+		case JsonExtension:
+			return e.MinifyJson(content)
+		case HTMLExtension:
+			return e.MinifyHTML(content)
+		default:
+			return content, nil
 		}
 	}
-	for _, asset := range engine.Assets {
-		engine.paths[asset.WebPagePath] = func(engine *Engine) ([]byte, error) {
-			file, openError := os.Open(asset.FileSystemPath)
-			if openError != nil {
-				return nil, openError
-			}
-			defer file.Close()
-			content, readError := io.ReadAll(file)
-			if readError != nil {
-				return nil, readError
-			}
-			split := strings.Split(file.Name(), ".")
-			if len(split) == 1 {
-				return content, nil
-			}
-			fileFormat := split[len(split)-1]
-			switch fileFormat {
-			case JSExtension:
-				return engine.MinifyJS(content)
-			case JsonExtension:
-				return engine.MinifyJson(content)
-			case HTMLExtension:
-				return engine.MinifyHTML(content)
-			default:
-				return content, nil
-			}
+}
+
+func newScriptLoader(script Script) ContentGenerator {
+	return func(e *Engine) ([]byte, error) {
+		file, compilationError := compiler.Compile([]string{script.PackagePath}, "", compiler.PrepareDefaultOptions())
+		if compilationError != nil {
+			return nil, compilationError
 		}
+		defer file.Close()
+		content, readError := io.ReadAll(file)
+		if readError != nil {
+			return nil, readError
+		}
+		return e.MinifyJS(content)
+	}
+}
+
+func (engine *Engine) prepareStatic() error {
+	for _, script := range engine.Scripts {
+		if _, ok := engine.paths[script.WebPagePath]; ok {
+			return errors.New(fmt.Sprintf(PathAlreadyInUse, script.WebPagePath))
+		}
+		engine.paths[script.WebPagePath] = newScriptLoader(script)
+	}
+	for _, asset := range engine.Assets {
+		if _, ok := engine.paths[asset.WebPagePath]; ok {
+			return errors.New(fmt.Sprintf(PathAlreadyInUse, asset.WebPagePath))
+		}
+		engine.paths[asset.WebPagePath] = newAssetLoader(asset)
 	}
 	return nil
 }
