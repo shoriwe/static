@@ -1,1 +1,1 @@
-function hello_world(){console.log("hello world!")}
+function panic(a){console.log("panic: "+a)}
