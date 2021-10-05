@@ -2,6 +2,10 @@
 
 A simple static frontend generator library.
 
+## Examples
+
+- [https://shoriwe.github.io](https://shoriwe.github.io)
+
 ## Features
 
 - Go to JavaScript (**Powered by [GopherJS](https://github.com/gopherjs/gopherjs)**)
