@@ -249,27 +249,45 @@ func createFile(filePath string) (*os.File, error) {
 	return os.Create(filePath)
 }
 
+func generate(e *Engine, file *os.File, generator ContentGenerator) error {
+	content, contentGenerationError := generator(e)
+	if contentGenerationError != nil {
+		return contentGenerationError
+	}
+	_, writeError := file.Write(content)
+	if writeError != nil {
+		return writeError
+	}
+	closeError := file.Close()
+	if closeError != nil {
+		return closeError
+	}
+	return nil
+}
 func (engine *Engine) Generate(output string) error {
 	preparationError := engine.prepareStatic()
 	if preparationError != nil {
 		return preparationError
 	}
+	generationErrors := make(chan error, len(engine.paths))
 	for webPath, contentGenerator := range engine.paths {
 		file, creationError := createFile(path.Join(output, webPath))
 		if creationError != nil {
 			return creationError
 		}
-		content, contentGenerationError := contentGenerator(engine)
-		if contentGenerationError != nil {
-			return contentGenerationError
-		}
-		_, writeError := file.Write(content)
-		if writeError != nil {
-			return writeError
-		}
-		closeError := file.Close()
-		if closeError != nil {
-			return closeError
+		go func(generator ContentGenerator) {
+			err := generate(engine, file, generator)
+			if err != nil {
+				generationErrors <- err
+			} else {
+				generationErrors <- nil
+			}
+		}(contentGenerator)
+	}
+	for range engine.paths {
+		err := <-generationErrors
+		if err != nil {
+			return err
 		}
 	}
 	return nil
