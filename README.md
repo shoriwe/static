@@ -4,7 +4,7 @@ A simple static frontend generator library.
 
 ## Examples
 
-- [https://shoriwe.github.io](https://shoriwe.github.io)
+- [https://shoriwe.github.io/plasma/index.html](https://shoriwe.github.io/plasma/index.html)
 
 ## Features
 
